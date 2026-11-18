@@ -1,0 +1,17 @@
+id = "jade"
+name = "Jade"
+version = "0.1.0"
+description = "What am I looking at: a tooltip at the top of the screen naming the block or mob under the crosshair, its mod, harvest tool, breaking progress, health and what is inside it. A clean-room Sunrise port of Jade's behaviour (Snownee, CC BY-NC-SA 4.0); no Jade code or art."
+authors = ["Snownee (Jade, the original)", "Sunrise port: Xmilon"]
+# A native mod: Rust in src/, compiled by the launcher against the game build [native] pins.
+api = "0.2"
+# Both: the client draws the tooltip; the server half answers what only the server knows (container
+# contents, furnace progress, mob health and effects, owners), as Jade's server plugin does.
+side = "both"
+capabilities = ["registries"]
+
+[native]
+game = "26.3"
+# Pinned to Sunrise Nightly 2026-11-17 (2d81263), the newest Nightly with a published SDK.
+sunrise = "2d8126336e579777eabf9b2fd8b3d476236a04f2"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"

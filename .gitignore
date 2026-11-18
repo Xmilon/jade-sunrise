@@ -1,0 +1,5 @@
+/target/
+/.sunrise/
+/.ref/
+*.smod
+*.minisig
