@@ -73,8 +73,8 @@ Snownee.
 - Villager profession (and level, with details); zombie villager conversion time.
 - Baby growth time, breeding cooldown, next egg or scute.
 - Horse jump, speed and strength.
-- Item frame contents, dropped item name and count, painting title and artist, armour stand gear,
-  minecart contents.
+- Item frame contents, painting title and artist, armour stand gear, minecart contents. (Dropped
+  items are not targets yet: API-GAPS #5.)
 
 **Overlay behaviour**
 - The tooltip:
@@ -89,7 +89,8 @@ Snownee.
   - while the player list is shown;
   - when toggled off with Show Overlay.
 - Display modes: Toggle, Hold and Lite (the main lines only, the rest with Show Details).
-- Narrate: Numpad 5 reads the target through the narrator.
+- Narrate: Numpad 5 sends the target's text to the narrator (not tested in-game: `sunrise-ctl`
+  cannot press numpad keys, and offscreen runs have no narrator).
 
 ### Two halves
 
@@ -124,12 +125,16 @@ GUI scale 3):
 | Key Binds: Show Overlay rebound from Keypad 1 to O; O then hides the tooltip | `07-keybinds-rebound.png`, `sheet-toggle.png` |
 | Jade's config screen with the live preview | `final-config-screen.png` |
 | Water (fluid target), item frame | `11-water.png`, `final-item-frame.png` |
+| Fixes after the first run: item frame contents, furnace arrow, no cross on a chest under a pickaxe | `sheet-final.png` |
+| Options › Mods lists Jade, and its Config page holds the same options | `12-options-mods.png`, `12-options-mods-jade-config.png` |
+| Lite mode: Show Details reveals the rest (here the block states) | `sheet-lite.png` |
 
 ## What doesn't work (yet), and why
 
 Gaps in Sunrise's mod API are listed with what this port does instead in
 **[API-GAPS.md](API-GAPS.md)**. In short:
 - No hearts on a server without the mod.
+- Dropped items can't be targeted.
 - The Open Config key opens Jade's own quick screen, not Options › Mods.
 - Boss Bar Overlap has no effect.
 - Extended Reach covers blocks only.
