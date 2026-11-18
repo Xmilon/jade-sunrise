@@ -1,0 +1,25 @@
+Jade for Sunrise
+================
+
+This mod is a clean-room port of the behaviour of Jade, the "what am I looking at" overlay for
+Minecraft by Snownee (the successor of HWYLA/WAILA), to Sunrise. Jade is:
+
+  Copyright (c) Snownee and contributors
+  Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+  (CC BY-NC-SA 4.0).
+  https://github.com/Snownee/Jade
+
+No Jade source code and no Jade art is in this mod. It was written from a description of Jade's
+observable behaviour (SPEC.md): what the overlay shows, its options and their defaults, and its
+user-facing strings. Every sprite it draws is either the game's own (hearts, armour) or drawn from
+plain fills (the box, the progress arrow, the check and the cross).
+
+This port is offered under the same licence, CC BY-NC-SA 4.0 (see LICENSE), so it can be shared on
+Jade's terms: credit Snownee's Jade, no commercial use, share alike.
+
+This is an unofficial port. It is not made, endorsed or supported by Snownee, the Jade team,
+Mojang, Microsoft or the Sunrise project.
+
+Sunrise is a Rust reimplementation of Minecraft: Java Edition. Minecraft is a trademark of Mojang
+Synergies AB. This mod contains no Minecraft code or assets; it reads the game's own files at run
+time.
