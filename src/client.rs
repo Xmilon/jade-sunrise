@@ -57,8 +57,6 @@ struct State {
     box_size: [f32; 2],
     box_origin: [f32; 2],
     last_frame: u64,
-    /// The previous target's health, to blink the hearts on damage.
-    last_health: Option<(u32, f32, u64)>,
     started: bool,
 }
 

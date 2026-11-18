@@ -7,6 +7,8 @@
 //! container sprites. Nothing here is Jade's art.
 
 use mod_api::*;
+use mod_api::client::hud_layout::{Blend, PoseOp};
+use mod_api::text::TextStyle;
 
 /// Semantic colours (Jade's palette).
 pub const NORMAL: u32 = 0xFFA0A0A0;
@@ -262,7 +264,8 @@ impl Paint {
                         shadow: true,
                     }),
                     El::Italic(t, c, scale) => {
-                        let style = TextStyle { italic: Some(true), ..TextStyle::default() };
+                        let mut style = TextStyle::default();
+                        style.italic = Some(true);
                         ops.push(GuiDraw::Push(vec![PoseOp::Translate(x, y), PoseOp::Scale(*scale, *scale)]));
                         ops.push(GuiDraw::Text {
                             text: Text::literal(t.clone()).with_style(style),

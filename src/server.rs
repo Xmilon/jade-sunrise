@@ -134,7 +134,7 @@ fn entity_reply(host: &mut dyn ServerHost, me: EntityRef, id: u32) -> Option<Val
                 effects
                     .iter()
                     .filter(|e| e.visible)
-                    .map(|e| json!({"id": e.id.to_string(), "amp": e.amplifier, "dur": e.duration}))
+                    .map(|e| json!({"id": e.id.id(host), "amp": e.amplifier, "dur": e.duration}))
                     .collect(),
             );
         }
