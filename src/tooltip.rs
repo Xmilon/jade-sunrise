@@ -298,29 +298,13 @@ impl Paint {
                         blend: Blend::Textured,
                     }),
                     El::Arrow(ratio) => {
+                        // Drawn from fills: vanilla's burn_progress sprite carries the furnace
+                        // slot's grey behind the arrow, so it can't sit on the tooltip's box.
                         let (xi, yi) = (x.round() as i32, y.round() as i32);
-                        sprites.push(GuiDraw::Sprite {
-                            sprite: "container/furnace/burn_progress".into(),
-                            x: xi,
-                            y: yi,
-                            w: 24,
-                            h: 16,
-                            region: None,
-                            color: with_alpha(0xFF404040, a * 0.6),
-                            blend: Blend::Textured,
-                        });
-                        let filled = (24.0 * ratio.clamp(0.0, 1.0)).round() as i32;
-                        if filled > 0 {
-                            sprites.push(GuiDraw::Sprite {
-                                sprite: "container/furnace/burn_progress".into(),
-                                x: xi,
-                                y: yi,
-                                w: filled,
-                                h: 16,
-                                region: Some([24, 16, 0, 0]),
-                                color: with_alpha(0xFFFFFFFF, a),
-                                blend: Blend::Textured,
-                            });
+                        let filled = (ARROW_W as f32 * ratio.clamp(0.0, 1.0)).round() as i32;
+                        for (cx, y0, y1) in arrow_columns() {
+                            let color = if cx < filled { 0xFFFFFFFF } else { 0xFF5A5A5A };
+                            ops.push(GuiDraw::Fill { x0: xi + cx, y0: yi + y0, x1: xi + cx + 1, y1: yi + y1, color: with_alpha(color, a) });
                         }
                     }
                     El::Check(ok) => {
@@ -363,6 +347,14 @@ impl Paint {
 }
 
 /// The check and the cross, as 1-pixel fills in an 8 × 8 cell (drawn here, not a font glyph).
+const ARROW_W: i32 = 22;
+
+/// The progress arrow, column by column (x, top, bottom) in a 22x16 cell: a shaft 4 pixels thick,
+/// then a head narrowing from the full height to a point.
+fn arrow_columns() -> impl Iterator<Item = (i32, i32, i32)> {
+    (0..ARROW_W).map(|c| if c < 13 { (c, 6, 10) } else { let k = c - 13; (c, k, 16 - k) })
+}
+
 fn check_pixels(ok: bool) -> Vec<(i32, i32, i32, i32)> {
     if ok {
         vec![(0, 4, 2, 1), (1, 5, 2, 1), (2, 6, 2, 1), (3, 5, 2, 1), (4, 4, 1, 1), (4, 3, 2, 1), (5, 2, 1, 1), (5, 1, 2, 1), (6, 0, 1, 1), (6, 1, 1, 1)]

@@ -4,7 +4,7 @@
 #   2. the package unpacked into $JADE_TARGET/mods/jade, the folder of mods the build reads;
 #   3. `cargo sunrise-mod native-build` (the SDK's own tool, the launcher's code) against the
 #      2d81263 SDK's runtime and api slices: a game executable with Jade linked in.
-# Prints the built executable's path last. Needs the SDK slices unpacked in $JADE_SDK/pkg/{runtime,api,engine}
+# Then installs it in $JADE_TARGET/install as the launcher would and prints the executable last. Needs the SDK slices unpacked in $JADE_SDK/pkg/{runtime,api,engine}
 # (tools/fetch_sdk.sh).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -56,4 +56,22 @@ if [ $CODE -ne 0 ]; then
   tail -n 40 "$WORK/build.log" >&2
   exit $CODE
 fi
-python3 -I -c 'import json,sys; e=[json.loads(l) for l in open(sys.argv[1])][-1]; print(e["binary"])' "$JADE_TARGET/native-events.jsonl"
+step "install into $JADE_TARGET/install (as the launcher's native-<commit> folder)"
+python3 -I - "$JADE_TARGET/native-events.jsonl" "$JADE_TARGET/install" "$JADE_TARGET/mods" <<'EOF2'
+import json, shutil, sys, pathlib
+events, out, mods = sys.argv[1:]
+built = [json.loads(l) for l in open(events)][-1]
+out = pathlib.Path(out)
+shutil.rmtree(out, ignore_errors=True)
+out.mkdir(parents=True)
+# The game loads its libraries from beside the executable: real copies, never links.
+shutil.copy2(built["binary"], out / "sunrise-client")
+for lib in built["libraries"]:
+    shutil.copy2(lib, out / pathlib.Path(lib).name)
+record = {k: built[k] for k in ("route", "mods", "internals", "mixins") if k in built}
+record["libraries"] = built["records"]
+(out / "native-mods.json").write_text(json.dumps(record))
+for mod in built["mods"]:
+    shutil.copytree(pathlib.Path(mods) / mod, out / "sunrise-native-mods" / mod)
+print(out / "sunrise-client")
+EOF2

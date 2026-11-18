@@ -18,7 +18,7 @@
   "config.jade.fluid_mode.none": "None",
   "config.jade.fluid_mode.fallback": "Fallback",
   "config.jade.boss_bar_overlap": "Boss Bar Overlap",
-  "config.jade.boss_bar_overlap.tooltip": "What to do when a boss bar is where the tooltip goes.",
+  "config.jade.boss_bar_overlap.tooltip": "What to do when a boss bar is where the tooltip goes. No effect yet: the mod API cannot read boss bars (API-GAPS.md).",
   "config.jade.boss_bar_overlap.push_down": "Push Down",
   "config.jade.boss_bar_overlap.no_operation": "No Operation",
   "config.jade.boss_bar_overlap.hide_tooltip": "Hide Tooltip",

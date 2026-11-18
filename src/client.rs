@@ -93,6 +93,9 @@ pub fn mod_name(namespace: &str) -> String {
 }
 
 pub fn received(reply: Json) {
+    if std::env::var_os("JADE_DEBUG").is_some() {
+        eprintln!("[jade] reply {reply}");
+    }
     with(|s| {
         if s.target.as_ref().is_some_and(|t| t.matches_reply(&reply)) {
             s.data = Some(reply);

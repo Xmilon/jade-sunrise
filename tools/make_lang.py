@@ -13,7 +13,7 @@ LABELS = {
     "display_bosses": ("Display Bosses", "Describe the Ender Dragon and the Wither."),
     "display_mode": ("Display Mode", "Toggle: the Show Overlay key turns it on and off. Hold: shown while the key is held. Lite: only the main lines, the rest with Show Details held."),
     "fluid_mode": ("Fluid Mode", "Any: fluids are targets. None: never. Fallback: only when no block is hit."),
-    "boss_bar_overlap": ("Boss Bar Overlap", "What to do when a boss bar is where the tooltip goes."),
+    "boss_bar_overlap": ("Boss Bar Overlap", "What to do when a boss bar is where the tooltip goes. No effect yet: the mod API cannot read boss bars (API-GAPS.md)."),
     "extended_reach": ("Extended Reach", "Blocks beyond your reach that the overlay still describes."),
     "hide_from_guis": ("Hide from GUIs", "Hide the overlay while a screen is open."),
     "hide_from_player_list": ("Hide from Player List", "Hide the overlay while the player list is shown."),

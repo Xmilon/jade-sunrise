@@ -11,7 +11,8 @@ use std::sync::Mutex;
 const W: f32 = 160.0;
 const H: f32 = 20.0;
 const GAP: f32 = 4.0;
-const TOP: f32 = 64.0;
+/// The option list's top; above it the live preview (top centre) and the title.
+const TOP: f32 = 76.0;
 
 static SCROLL: Mutex<f32> = Mutex::new(0.0);
 /// The GUI size the screen was last drawn at, for its clicks.
@@ -83,7 +84,7 @@ pub fn render(host: &dyn ClientHost, draw: &mut dyn DrawContext, mouse: [f32; 2]
     draw.fill([0.0, 0.0, size[0], size[1]], 0xA0101010);
     let title = host.translate("jade.config.title").unwrap_or_else(|| "Jade".into());
     let tw = draw.text_width(&title);
-    draw.text(&title, [(size[0] - tw) / 2.0, 6.0], 0xFFFFFFFF, true);
+    draw.text(&title, [(size[0] - tw) / 2.0, TOP - 14.0], 0xFFFFFFFF, true);
     let clip = [0.0, TOP - 2.0, size[0], size[1] - 30.0 - (TOP - 2.0)];
     let _ = draw.push_clip(clip);
     for (i, r) in rects(size).into_iter().enumerate() {

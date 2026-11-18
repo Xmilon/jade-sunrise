@@ -652,9 +652,12 @@ fn harvest_els(host: &dyn ClientHost, block: BlockKey, state: BlockState) -> Vec
     if requires || config::on("effective_tool") {
         let held = held(host);
         let correct = held.as_ref().and_then(|s| host.block_states().is_correct_tool_for_drops(s, state)).unwrap_or(false);
-        let ok = if requires { correct } else { correct || tools.is_empty() };
-        out.push(El::Space(1.0));
-        out.push(El::Check(ok));
+        // The cross means "this won't drop": a block any tool harvests gets the check when the held
+        // tool is its effective one, and no mark otherwise.
+        if requires || correct {
+            out.push(El::Space(1.0));
+            out.push(El::Check(correct));
+        }
     }
     out
 }
