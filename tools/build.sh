@@ -3,7 +3,7 @@
 #   1. `cargo sunrise-mod check`, then `build`: target/sunrise-mod/jade.smod;
 #   2. the package unpacked into $JADE_TARGET/mods/jade, the folder of mods the build reads;
 #   3. `cargo sunrise-mod native-build` (the SDK's own tool, the launcher's code) against the
-#      2d81263 SDK's runtime and api slices: a game executable with Jade linked in.
+#      pinned (520fc48) SDK's runtime and api slices: a game executable with Jade linked in.
 # Then installs it in $JADE_TARGET/install as the launcher would and prints the executable last. Needs the SDK slices unpacked in $JADE_SDK/pkg/{runtime,api,engine}
 # (tools/fetch_sdk.sh).
 set -euo pipefail

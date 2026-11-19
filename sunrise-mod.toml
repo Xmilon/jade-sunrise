@@ -12,6 +12,6 @@ capabilities = ["registries"]
 
 [native]
 game = "26.3"
-# Pinned to Sunrise Nightly 2026-11-17 (2d81263), the newest Nightly with a published SDK.
-sunrise = "2d8126336e579777eabf9b2fd8b3d476236a04f2"
+# Pinned to Sunrise Nightly 2026-11-19 (520fc48), the newest Nightly with a published SDK.
+sunrise = "520fc4882de3abb8ecd8b98293f4d7263bc88181"
 mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"

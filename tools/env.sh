@@ -8,5 +8,5 @@ export CARGO_TARGET_DIR="$JADE_TARGET"
 export RUSTUP_HOME="$JADE_TARGET/rustup"
 export RUSTUP_TOOLCHAIN=1.99.1-x86_64-unknown-linux-gnu
 export PATH="$RUSTUP_HOME/toolchains/$RUSTUP_TOOLCHAIN/bin:$PATH"
-export JADE_SDK="$JADE_TARGET/sdk/2d81263"
+export JADE_SDK="$JADE_TARGET/sdk/520fc48"
 sunrise_mod() { "$JADE_SDK/tool/cargo-sunrise-mod" sunrise-mod "$@"; }
