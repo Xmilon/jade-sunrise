@@ -1,5 +1,6 @@
-//! Jade for Sunrise: "what am I looking at". A clean-room port of the behaviour of Jade
-//! (Snownee's HWYLA successor, CC BY-NC-SA 4.0) on Sunrise's native mod API: no Jade code or art.
+//! Jade for Sunrise: "what am I looking at". An unofficial port of Jade (Snownee's HWYLA
+//! successor) to Sunrise's native mod API, adapted from Jade's code under CC BY-NC-SA 4.0 (see
+//! NOTICE); no Jade art.
 //!
 //! - `client`: the crosshair target, the keys, the tooltip built each tick and drawn as a HUD layer.
 //! - `providers`: what each block, entity and fluid adds to its tooltip.

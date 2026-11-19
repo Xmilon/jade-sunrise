@@ -1,7 +1,7 @@
 id = "jade"
 name = "Jade"
 version = "0.1.0"
-description = "What am I looking at: a tooltip at the top of the screen naming the block or mob under the crosshair, its mod, harvest tool, breaking progress, health and what is inside it. A clean-room Sunrise port of Jade's behaviour (Snownee, CC BY-NC-SA 4.0); no Jade code or art."
+description = "What am I looking at: a tooltip at the top of the screen naming the block or mob under the crosshair, its mod, harvest tool, breaking progress, health and what is inside it. An unofficial Sunrise port of Snownee's Jade, adapted from Jade's code (CC BY-NC-SA 4.0); no Jade art."
 authors = ["Snownee (Jade, the original)", "Sunrise port: Xmilon"]
 # A native mod: Rust in src/, compiled by the launcher against the game build [native] pins.
 api = "0.2"
