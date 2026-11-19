@@ -154,9 +154,9 @@ impl Hooks for Mod {
         match line {
             "jadec config" => screen::open(host),
             "jadec toggle" => {
-                let on = !config::on("enabled");
-                config::set("enabled", config::Value::Bool(on));
-                host.set_setting(ID, "enabled", if on { "true" } else { "false" });
+                let on = !config::on("display_tooltip");
+                config::set("display_tooltip", config::Value::Bool(on));
+                host.set_setting(ID, "display_tooltip", if on { "true" } else { "false" });
             }
             _ => return Flow::Continue,
         }

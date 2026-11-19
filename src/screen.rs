@@ -1,4 +1,5 @@
-//! Jade's quick screen (the Open Config key, Numpad 0): every option as a button, with a live
+//! Jade's quick screen (the Open Config key, Numpad 0): every option as a button, grouped under
+//! section titles as Jade's config screens are (General, Appearance, Plugin Settings), with a live
 //! preview of the overlay above it. Clicking changes the same settings Options > Mods > Jade
 //! shows, and the config file follows.
 //!
@@ -10,6 +11,9 @@ use std::sync::Mutex;
 
 const W: f32 = 160.0;
 const H: f32 = 20.0;
+/// A section title row (Jade's screens title each group; its Plugin Settings screen lists the
+/// provider options).
+const HEADER: f32 = 16.0;
 const GAP: f32 = 4.0;
 /// The option list's top; above it the live preview (top centre) and the title.
 const TOP: f32 = 76.0;
@@ -36,27 +40,94 @@ fn columns(width: f32) -> usize {
     (((width - 20.0) / (W + GAP)).floor() as usize).clamp(1, 3)
 }
 
-/// Each option's button rect, in screen pixels, with the scroll applied.
+/// The rows in order: a section title before each group, then its options. The item carries the
+/// option's index into [`OPTS`].
+fn rows() -> Vec<Row> {
+    let mut out: Vec<Row> = Vec::new();
+    let mut section = "";
+    for (i, opt) in OPTS.iter().enumerate() {
+        if opt.section != section {
+            section = opt.section;
+            out.push(Row::Header(section));
+        }
+        out.push(Row::Item(i));
+    }
+    out
+}
+
+enum Row {
+    Header(&'static str),
+    Item(usize),
+}
+
+/// Each row's button rect (or a title row's strip), in screen pixels, with the scroll applied.
 fn rects(size: [f32; 2]) -> Vec<[f32; 4]> {
     let cols = columns(size[0]);
     let total_w = cols as f32 * W + (cols as f32 - 1.0) * GAP;
     let x0 = ((size[0] - total_w) / 2.0).floor();
     let scroll = *SCROLL.lock().unwrap_or_else(|e| e.into_inner());
-    (0..OPTS.len())
-        .map(|i| {
-            let (col, row) = (i % cols, i / cols);
-            [x0 + col as f32 * (W + GAP), TOP + row as f32 * (H + GAP) - scroll, W, H]
-        })
-        .collect()
+    let mut out = Vec::new();
+    let mut col = 0;
+    let mut row = 0;
+    for r in rows() {
+        if matches!(r, Row::Header(_)) {
+            if col != 0 {
+                col = 0;
+                row += 1;
+            }
+            out.push([0.0, TOP + row as f32 * (HEADER + GAP) - scroll, size[0], HEADER]);
+            row += 1;
+        } else {
+            out.push([x0 + col as f32 * (W + GAP), TOP + row as f32 * (H + GAP) - scroll, W, H]);
+            col += 1;
+            if col >= cols {
+                col = 0;
+                row += 1;
+            }
+        }
+    }
+    out
+}
+
+fn content_height(size: [f32; 2]) -> f32 {
+    let mut h = 0.0;
+    let mut col = 0;
+    for r in rows() {
+        if matches!(r, Row::Header(_)) {
+            if col != 0 {
+                col = 0;
+                h += H;
+            }
+            h += HEADER;
+        } else {
+            col += 1;
+            if col >= columns(size[0]) {
+                col = 0;
+                h += H;
+            }
+        }
+    }
+    h
 }
 
 fn done_rect(size: [f32; 2]) -> [f32; 4] {
     [(size[0] - 200.0) / 2.0, size[1] - 26.0, 200.0, 20.0]
 }
 
+/// A section's title: `config.jade.<section>`, or Jade's English title.
+fn section_title(host: &dyn ClientHost, section: &str) -> String {
+    host.translate(&format!("config.jade.{section}")).unwrap_or_else(|| match section {
+        "general" => "General".into(),
+        "overlay" => "Appearance".into(),
+        _ => "Plugin Settings".into(),
+    })
+}
+
 fn label(host: &dyn ClientHost, i: usize) -> String {
     let opt = OPTS[i];
-    let name = host.translate(&format!("config.jade.{}", opt.key)).unwrap_or_else(|| opt.key.replace('_', " "));
+    let name = host
+        .translate(&format!("config.jade.{}", opt.key))
+        .unwrap_or_else(|| opt.key.replace(['_', '.'], " "));
     let value = match (opt.kind, config::get(opt.key)) {
         (Kind::Toggle(_), Value::Bool(b)) => host
             .translate(if b { "options.on" } else { "options.off" })
@@ -87,12 +158,19 @@ pub fn render(host: &dyn ClientHost, draw: &mut dyn DrawContext, mouse: [f32; 2]
     draw.text(&title, [(size[0] - tw) / 2.0, TOP - 14.0], 0xFFFFFFFF, true);
     let clip = [0.0, TOP - 2.0, size[0], size[1] - 30.0 - (TOP - 2.0)];
     let _ = draw.push_clip(clip);
-    for (i, r) in rects(size).into_iter().enumerate() {
+    for (r, row) in rects(size).into_iter().zip(rows()) {
         if r[1] + r[3] < clip[1] || r[1] > clip[1] + clip[3] {
             continue;
         }
-        let hover = inside(r, mouse) && inside(clip, mouse);
-        let _ = draw.widget_button(r, &Text::literal(label(host, i)), true, hover);
+        match row {
+            Row::Item(i) => {
+                let hover = inside(r, mouse) && inside(clip, mouse);
+                let _ = draw.widget_button(r, &Text::literal(label(host, i)), true, hover);
+            }
+            Row::Header(section) => {
+                draw.text(&section_title(host, section), [8.0, r[1] + 2.0], 0xFFAAAAAA, true);
+            }
+        }
     }
     let _ = draw.pop_clip();
     let d = done_rect(size);
@@ -108,7 +186,10 @@ pub fn click(host: &dyn ClientHost, size: [f32; 2], at: [f32; 2], button: u32) -
     if !inside(clip, at) {
         return true;
     }
-    let Some(i) = rects(size).iter().position(|r| inside(*r, at)) else { return true };
+    let Some((_, row)) = rects(size).into_iter().zip(rows()).find(|(r, _)| inside(*r, at)) else {
+        return true;
+    };
+    let Row::Item(i) = row else { return true }; // a section title: taken, no option behind it
     let opt = OPTS[i];
     let back = button == 1;
     let value = match (opt.kind, config::get(opt.key)) {
@@ -117,7 +198,7 @@ pub fn click(host: &dyn ClientHost, size: [f32; 2], at: [f32; 2], button: u32) -
             let n = options.len();
             Value::Choice(if back { (c + n - 1) % n } else { (c + 1) % n })
         }
-        (Kind::Range(min, max, step, _), Value::Num(v)) => {
+        (Kind::Range(min, max, step, _, _), Value::Num(v)) => {
             let big = if host.modifiers().shift() { 10.0 } else { 1.0 };
             let next = if back { v - step * big } else { v + step * big };
             let next = (next / step).round() * step;
@@ -136,10 +217,8 @@ pub fn on_done(size: [f32; 2], at: [f32; 2]) -> bool {
 }
 
 pub fn scroll(size: [f32; 2], amount: f32) {
-    let rows = OPTS.len().div_ceil(columns(size[0]));
-    let content = rows as f32 * (H + GAP);
     let view = size[1] - 30.0 - TOP;
-    let max = (content - view).max(0.0);
+    let max = (content_height(size) - view).max(0.0);
     let mut s = SCROLL.lock().unwrap_or_else(|e| e.into_inner());
     *s = (*s - amount * 24.0).clamp(0.0, max);
 }

@@ -17,10 +17,11 @@ const MAX_DISTANCE: f64 = 24.0;
 /// The saved-data keys of an entity the client's providers read; the rest (brains, gossip,
 /// trades, inventories) is never sent.
 const ENTITY_KEYS: &[&str] = &[
-    "VillagerData", "Age", "ForcedAge", "InLove", "Item", "variant", "equipment", "ConversionTime",
+    "VillagerData", "Age", "ForcedAge", "InLove", "Item", "item", "block_state", "variant", "equipment", "ConversionTime",
     "EggLayTime", "scute_time", "Tame", "Variant", "Fuse", "Strength", "Sitting", "Invisible",
     "Items", "CustomName", "Owner", "ItemRotation", "Fixed", "BlockState", "Time", "Health",
-    "DeathTime", "AbsorptionAmount", "RestocksToday", "LastRestock", "Brain",
+    "DeathTime", "AbsorptionAmount", "RestocksToday", "LastRestock", "Brain", "SpawnData",
+    "DuplicationCooldown",
 ];
 
 /// A request's target: a block position, or an entity id.
@@ -87,6 +88,32 @@ fn block_reply(host: &mut dyn ServerHost, player: PlayerRef, me: EntityRef, pos:
     if block.as_deref() == Some("minecraft:ender_chest") {
         out["ender"] = ender_items(host, player);
     }
+    // Jade's RedstoneProvider streams the signal behind a calibrated sculk sensor's back.
+    if let Some(state) = level.block_state(host, pos)
+        && let Some(text) = host.block_state_string(state)
+        && block.as_deref() == Some("minecraft:calibrated_sculk_sensor")
+        && let Some(facing) = property(&text, "facing")
+    {
+        let back = match facing.as_str() {
+            "north" => ([pos[0], pos[1], pos[2] - 1], Direction::North),
+            "south" => ([pos[0], pos[1], pos[2] + 1], Direction::South),
+            "west" => ([pos[0] - 1, pos[1], pos[2]], Direction::West),
+            "east" => ([pos[0] + 1, pos[1], pos[2]], Direction::East),
+            "down" => ([pos[0], pos[1] - 1, pos[2]], Direction::Down),
+            _ => ([pos[0], pos[1] + 1, pos[2]], Direction::Up),
+        };
+        if let Some(signal) = level.signal(host, back.0, back.1) {
+            out["input_signal"] = json!(signal);
+        }
+    }
+    // Jade's HopperLockProvider: a hopper turned off by redstone renames the title.
+    if let Some(state) = level.block_state(host, pos)
+        && let Some(text) = host.block_state_string(state)
+        && block.as_deref() == Some("minecraft:hopper")
+        && property(&text, "enabled") == Some("false".to_owned())
+    {
+        out["hopper_disabled"] = Value::Bool(true);
+    }
     if let Some(be) = host.block_entity(level, pos) {
         if let Some(data) = be.data(host) {
             out["be"] = compound_json(&data);
@@ -101,6 +128,12 @@ fn block_reply(host: &mut dyn ServerHost, player: PlayerRef, me: EntityRef, pos:
     Some(out)
 }
 
+/// One property's value from `/setblock`-style state text.
+fn property(text: &str, key: &str) -> Option<String> {
+    let inner = text.split_once('[')?.1.trim_end_matches(']');
+    inner.split(',').find_map(|kv| kv.split_once('=').filter(|(k, _)| k.trim() == key).map(|(_, v)| v.trim().to_owned()))
+}
+
 fn entity_reply(host: &mut dyn ServerHost, me: EntityRef, id: u32) -> Option<Value> {
     let entity = host.entity(id)?;
     let at = entity.position(host)?;
@@ -108,18 +141,26 @@ fn entity_reply(host: &mut dyn ServerHost, me: EntityRef, id: u32) -> Option<Val
         return None;
     }
     let mut out = json!({"t": "e", "id": id});
-    if let Some(kind) = entity.kind(host) {
-        out["type"] = Value::String(kind.id(host));
+    let kind = entity.kind(host).map(|k| k.id(host));
+    if let Some(kind) = &kind {
+        out["type"] = Value::String(kind.to_owned());
     }
     if let Some(living) = host.living(entity) {
-        if let Some(h) = living.health(host) {
-            out["health"] = json!(h);
-        }
-        if let Some(m) = living.max_health(host) {
-            out["max_health"] = json!(m);
-        }
-        if let Some(a) = living.absorption(host) {
-            out["absorption"] = json!(a);
+        // Jade's health gate: an armour stand or a creaking shows no hearts.
+        let health_visible = !matches!(
+            kind.as_deref(),
+            Some("minecraft:armor_stand") | Some("minecraft:creaking")
+        );
+        if health_visible {
+            if let Some(h) = living.health(host) {
+                out["health"] = json!(h);
+            }
+            if let Some(m) = living.max_health(host) {
+                out["max_health"] = json!(m);
+            }
+            if let Some(a) = living.absorption(host) {
+                out["absorption"] = json!(a);
+            }
         }
         if let Some(a) = living.attribute_value(host, "minecraft:armor") {
             out["armor"] = json!(a);
@@ -141,12 +182,11 @@ fn entity_reply(host: &mut dyn ServerHost, me: EntityRef, id: u32) -> Option<Val
         if living.is_tamed(host) == Some(true) {
             out["tamed"] = Value::Bool(true);
         }
-        if let Some(owner) = living.owner(host) {
-            let name = host.player(owner).and_then(|p| p.name(host));
-            out["owner"] = match name {
-                Some(n) => Value::String(n),
-                None => Value::String(format!("{owner:032x}")),
-            };
+        // Jade sends the owner's name when it resolves one and nothing at all when it doesn't.
+        if let Some(owner) = living.owner(host)
+            && let Some(name) = host.player(owner).and_then(|p| p.name(host))
+        {
+            out["owner"] = Value::String(name);
         }
     }
     if let Some(nbt) = entity.nbt(host) {

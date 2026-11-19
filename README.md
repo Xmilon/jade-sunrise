@@ -3,13 +3,14 @@
 "What am I looking at": a small box at the top centre of the screen naming the block, fluid or mob
 under the crosshair, the mod it comes from, and what is worth knowing about it. It covers the harvest
 tool, breaking progress, crop growth, furnace progress, container contents, health, effects, owner,
-profession and more. It is a **Sunrise native mod** (Rust, compiled against the game) and a clean-room
-port of the behaviour of [Jade](https://github.com/Snownee/Jade) by Snownee.
+profession and more. It is a **Sunrise native mod** (Rust, compiled against the game) and a port of
+[Jade](https://github.com/Snownee/Jade) by Snownee.
 
-**Licence.** Jade is licensed **CC BY-NC-SA 4.0**. This port contains no Jade code and no Jade art.
-It was written from a description of Jade's behaviour ([SPEC.md](SPEC.md)). It is offered under the
-same CC BY-NC-SA 4.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)). It is unofficial and not endorsed by
-Snownee.
+**Licence.** Jade is licensed **CC BY-NC-SA 4.0**. This port adapts Jade's code: its targeting,
+tooltip layout, providers, options and formats were translated from Jade's Java source (26.3 Fabric,
+`7c57c36`) to Rust, and its English strings come from Jade's `en_us.json`. It contains no Jade art.
+It is offered under the same CC BY-NC-SA 4.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)). It is unofficial
+and not endorsed by Snownee.
 
 - **Game:** Sunrise 26.3, pinned to Nightly 2026-11-19 (`520fc48`, SDK release
   `sdk-520fc4882de3abb8ecd8b98293f4d7263bc88181`), the newest Nightly with a published mod SDK. Mod API

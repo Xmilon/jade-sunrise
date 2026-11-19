@@ -1,5 +1,7 @@
 # Jade — Behaviour Spec for Clean-Room Rewrite (Sunrise / Rust MC 26.3)
 
+> **Historical.** This spec started the port as a clean-room rewrite. Since 2026-11-19 the port is matched against Jade's own source (26.3 Fabric, `7c57c36`) and adapts its code; see NOTICE. Where this spec and Jade's code disagree, Jade's code wins.
+
 Behaviour specification of **Jade** by Snownee (HWYLA/WAILA successor), reverse-described from its public
 distribution and behaviour for a clean-room reimplementation on a different engine.
 **No Jade code or art is copied.** All numbers, strings and defaults below are observable behaviour/facts.
