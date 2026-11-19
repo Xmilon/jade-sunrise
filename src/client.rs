@@ -184,10 +184,76 @@ fn fluid_along(host: &dyn ClientHost, level: LevelRef, from: [f64; 3], dir: [f64
     None
 }
 
+/// Where a ray from `from` along `dir` (a unit vector) enters `aabb`: 0 when it starts inside,
+/// None when it misses or enters past `max`.
+fn ray_box(from: [f64; 3], dir: [f64; 3], aabb: [[f64; 3]; 2], max: f64) -> Option<f64> {
+    let (mut near, mut far) = (0.0f64, max);
+    for a in 0..3 {
+        let (lo, hi) = (aabb[0][a], aabb[1][a]);
+        if dir[a].abs() < 1e-12 {
+            if from[a] < lo || from[a] > hi {
+                return None;
+            }
+            continue;
+        }
+        let (t0, t1) = ((lo - from[a]) / dir[a], (hi - from[a]) / dir[a]);
+        near = near.max(t0.min(t1));
+        far = far.min(t0.max(t1));
+        if near > far {
+            return None;
+        }
+    }
+    Some(near)
+}
+
+/// The nearest entity along the view within `max` blocks, by Jade's own ray rather than the
+/// game's pick: dropped items count (vanilla's crosshair skips them), and the reach is the
+/// player's own plus Extended Reach. A box thinner than 0.3 on an axis is widened to 0.3 there.
+/// Reads the client's tracked entities (`LevelRef::entities_in`) and their boxes.
+fn entity_along(host: &dyn ClientHost, level: LevelRef, from: [f64; 3], dir: [f64; 3], max: f64) -> Option<(EntityRef, f64)> {
+    let to = [from[0] + dir[0] * max, from[1] + dir[1] * max, from[2] + dir[2] * max];
+    let lo = [from[0].min(to[0]) - 1.0, from[1].min(to[1]) - 1.0, from[2].min(to[2]) - 1.0];
+    let hi = [from[0].max(to[0]) + 1.0, from[1].max(to[1]) + 1.0, from[2].max(to[2]) + 1.0];
+    let me = host.local_player().map(|p| p.entity());
+    let feet = me.and_then(|p| p.position(host));
+    let mut best: Option<(EntityRef, f64)> = None;
+    for e in level.entities_in(host, lo, hi).unwrap_or_default() {
+        if Some(e.id()) == me.map(|p| p.id()) {
+            continue;
+        }
+        let Some(mut b) = e.bounding_box(host) else { continue };
+        // What the player rides holds the player's feet (the client can't read vehicles).
+        if let Some(f) = feet
+            && (0..3).all(|a| f[a] >= b[0][a] - 0.01 && f[a] <= b[1][a] + 0.01)
+        {
+            continue;
+        }
+        for a in 0..3 {
+            let size = b[1][a] - b[0][a];
+            if size < 0.3 {
+                let grow = (0.3 - size) / 2.0;
+                b[0][a] -= grow;
+                b[1][a] += grow;
+            }
+        }
+        if let Some(t) = ray_box(from, dir, b, max)
+            && best.as_ref().is_none_or(|(_, bt)| t < *bt)
+        {
+            best = Some((e, t));
+        }
+    }
+    best
+}
+
 fn find_target(host: &dyn ClientHost) -> Option<Target> {
     let crosshair = host.crosshair_target();
     let camera = host.camera();
     let level = host.local_player().and_then(|p| p.level(host));
+    let breaking = host
+        .local_player()
+        .and_then(|p| p.block_breaking(host))
+        .is_some_and(|b| matches!(b, BlockBreakingState::Breaking { .. }));
+    let vanilla_entity = matches!(crosshair, Some(CrosshairTarget::Entity { .. }));
     let mut target = match crosshair {
         Some(CrosshairTarget::Block { pos, state, hit }) => {
             Some((Target::Block { pos: [pos.x, pos.y, pos.z], state, face: hit.face, hit: hit.point }, distance(camera.as_ref(), hit.point)))
@@ -209,6 +275,18 @@ fn find_target(host: &dyn ClientHost) -> Option<Target> {
         {
             let face = face_vec(hit.face);
             target = Some((Target::Block { pos: hit.block, state, face, hit: hit.location }, distance(Some(cam), hit.location)));
+        }
+    }
+    // Entities the game's pick leaves out: dropped items, and mobs past its reach with Extended
+    // Reach. The game's own entity hit stands; while a block is being mined, dropped items are
+    // not targets (Jade's rule), so the game's answer stands then too.
+    if !vanilla_entity
+        && !breaking
+        && let (Some(cam), Some(level)) = (camera.as_ref(), level)
+    {
+        let limit = target.as_ref().map(|(_, d)| *d).unwrap_or(f64::INFINITY).min(reach(host, true));
+        if let Some((entity, d)) = entity_along(host, level, cam.position, look(cam), limit) {
+            target = Some((Target::Entity { entity, id: entity.id() }, d));
         }
     }
     let fluid_mode = config::choice("fluid_mode");
@@ -315,6 +393,15 @@ pub fn tick(host: &mut dyn ClientHost) {
     if let Some(bytes) = request {
         let _ = host.send_payload_to_server(&PayloadId(server::CHANNEL.into()), PayloadBytes(bytes));
     }
+    if std::env::var_os("JADE_DEBUG").is_some()
+        && let Some(Target::Block { pos, .. }) = &target
+        && with(|s| s.data.is_none())
+        && let Some(level) = host.local_player().and_then(|p| p.level(host))
+    {
+        // What the client's own copy of the block entity holds (API-GAPS #10).
+        let copy = host.block_entity(level, *pos).map(|b| b.data(host).map(|c| server::compound_json(&c)));
+        eprintln!("[jade] client copy at {pos:?}: {copy:?}");
+    }
     let data = with(|s| s.data.clone());
     let built = target.as_ref().and_then(|t| providers::build(host, t, data.as_ref(), details));
     if narrate && let Some(tip) = &built {
@@ -356,8 +443,31 @@ fn visible(host: &dyn ClientHost, s: &State) -> bool {
     }
 }
 
+/// The boss bars drawn this frame (`customize_boss_event_progress`, told before the HUD layer
+/// that draws the tooltip), each as its title and bar: `[x, y, w, h]` in GUI pixels.
+static BOSS_BARS: Mutex<Vec<[f32; 4]>> = Mutex::new(Vec::new());
+/// The tooltip box last drawn, `[x, y, w, h]` in GUI pixels, for Hide Boss Bar.
+static LAST_BOX: Mutex<Option<[f32; 4]>> = Mutex::new(None);
+
+fn overlaps(a: [f32; 4], b: [f32; 4]) -> bool {
+    a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3]
+}
+
+/// A boss bar is about to be drawn at `x, y` (its bar's top-left; the title sits 9 pixels above).
+/// True to hide it: Boss Bar Overlap is Hide Boss Bar and the tooltip covers it.
+pub fn boss_bar(x: i32, y: i32) -> bool {
+    let rect = [x as f32, y as f32 - 9.0, 182.0, 14.0];
+    let mut bars = BOSS_BARS.lock().unwrap_or_else(|e| e.into_inner());
+    if bars.len() < 32 {
+        bars.push(rect);
+    }
+    config::BOSS_BAR_MODES.get(config::choice("boss_bar_overlap")) == Some(&"hide_boss_bar")
+        && LAST_BOX.lock().unwrap_or_else(|e| e.into_inner()).is_some_and(|b| overlaps(b, rect))
+}
+
 /// The HUD layer: the tooltip, faded and morphing toward its new size.
 pub fn draw(host: &dyn ClientHost, draw: &mut dyn DrawContext) {
+    let bars = std::mem::take(&mut *BOSS_BARS.lock().unwrap_or_else(|e| e.into_inner()));
     if !host.on(crate::ID) {
         return;
     }
@@ -367,20 +477,9 @@ pub fn draw(host: &dyn ClientHost, draw: &mut dyn DrawContext) {
     let now = host.millis();
     let dt = now.saturating_sub(s.last_frame).min(250) as f32;
     s.last_frame = now;
-    let want = visible(host, s) && (s.tooltip.is_some() || preview);
+    let mut want = visible(host, s) && (s.tooltip.is_some() || preview);
     let animate = config::on("animation");
-    // Jade's fade: 0.6 a tick toward shown or hidden (a tick is 50 ms).
-    let step = if animate { 0.6 * dt / 50.0 } else { 1.0 };
-    s.alpha = if want { (s.alpha + step).min(1.0) } else { (s.alpha - step).max(0.0) };
-    if s.alpha < 0.1 {
-        if !want {
-            return;
-        }
-    }
     let tip = if preview && s.tooltip.is_none() { providers::preview(host) } else { s.tooltip.clone().unwrap_or_default() };
-    if tip.lines.is_empty() && tip.icon.is_none() {
-        return;
-    }
     let lite = config::choice("display_mode") == 2;
     let show_detail = !lite || s.details;
     let lay: Layout = tooltip::layout(&tip, &Measure { draw: &*draw }, config::choice("icon_mode"), show_detail);
@@ -398,8 +497,29 @@ pub fn draw(host: &dyn ClientHost, draw: &mut dyn DrawContext) {
     let (ax, ay) = (config::num("anchor_x") as f32, config::num("anchor_y") as f32);
     let point = [sw * px, sh * (1.0 - py)];
     // The box's top-left (outside the padding), then the content's.
-    let box_xy = [point[0] - ax * full[0] * scale, point[1] - ay * full[1] * scale];
-    let mut origin = [box_xy[0] + 3.0 * scale, box_xy[1] + 3.0 * scale + if ay == 0.0 && py >= 0.99 { 3.0 } else { 0.0 }];
+    let mut box_xy = [point[0] - ax * full[0] * scale, point[1] - ay * full[1] * scale];
+    let mut top_gap = if ay == 0.0 && py >= 0.99 { 3.0 } else { 0.0 };
+    // Boss Bar Overlap, against the bars drawn this frame (with the frame's 1-pixel apron).
+    let apron = [box_xy[0] - scale, box_xy[1] + top_gap - scale, full[0] * scale + 2.0 * scale, full[1] * scale + 2.0 * scale];
+    if !preview && bars.iter().any(|b| overlaps(apron, *b)) {
+        match config::BOSS_BAR_MODES.get(config::choice("boss_bar_overlap")).copied() {
+            Some("push_down") => {
+                let below = bars.iter().map(|b| b[1] + b[3]).fold(0.0f32, f32::max);
+                box_xy[1] = box_xy[1].max(below + 2.0 + scale);
+                top_gap = 0.0;
+            }
+            Some("hide_tooltip") => want = false,
+            _ => {}
+        }
+    }
+    // Jade's fade: 0.6 a tick toward shown or hidden (a tick is 50 ms).
+    let step = if animate { 0.6 * dt / 50.0 } else { 1.0 };
+    s.alpha = if want { (s.alpha + step).min(1.0) } else { (s.alpha - step).max(0.0) };
+    if (s.alpha < 0.1 && !want) || (tip.lines.is_empty() && tip.icon.is_none()) {
+        *LAST_BOX.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        return;
+    }
+    let mut origin = [box_xy[0] + 3.0 * scale, box_xy[1] + 3.0 * scale + top_gap];
     origin[0] = origin[0].round();
     origin[1] = origin[1].round();
     // The 75 ms morph from the old box to the new one.
@@ -413,6 +533,8 @@ pub fn draw(host: &dyn ClientHost, draw: &mut dyn DrawContext) {
     }
     s.box_size = size;
     s.box_origin = origin;
+    *LAST_BOX.lock().unwrap_or_else(|e| e.into_inner()) =
+        Some([origin[0] - 4.0 * scale, origin[1] - 4.0 * scale, (size[0] + 8.0) * scale, (size[1] + 8.0) * scale]);
     let morphing = (size[0] - lay.size[0]).abs() > 0.5 || (size[1] - lay.size[1]).abs() > 0.5;
     let alpha = if morphing { s.alpha.max(0.55) } else { s.alpha };
     let paint = Paint {

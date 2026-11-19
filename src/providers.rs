@@ -821,7 +821,8 @@ fn health(host: &dyn ClientHost, t: &mut Tooltip, d: &Json) {
 }
 
 fn entity_lines(host: &dyn ClientHost, t: &mut Tooltip, kind: &str, n: &Json, data: Option<&Json>, details: bool) {
-    let age = n["Age"].as_i64();
+    // A mob's growing age; a dropped item's or an orb's `Age` is its time on the ground.
+    let age = data.and_then(|d| d.get("health")).and(n["Age"].as_i64());
     if config::on("villager_profession")
         && (kind == "minecraft:villager" || kind == "minecraft:zombie_villager")
         && let Some(prof) = n["VillagerData"]["profession"].as_str()

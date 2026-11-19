@@ -64,6 +64,16 @@ impl Hooks for Mod {
         }
     }
 
+    /// Boss Bar Overlap: every bar drawn is noted for the tooltip's layout; Hide Boss Bar hides
+    /// the bars the tooltip covers.
+    fn customize_boss_event_progress(&self, host: &dyn ClientHost, event: &mut CustomizeBossEventProgressEvent<'_>) -> Flow {
+        if host.on(ID) && client::boss_bar(event.x, event.y) {
+            event.cancelled = true;
+            return Flow::Cancel;
+        }
+        Flow::Continue
+    }
+
     fn register_configs(&self, _side: HostSide, event: &mut RegisterConfigsEvent<'_>) {
         let mut c = Config::new(ID, ConfigKind::Client, &config::default_file());
         c.file = config::FILE.into();

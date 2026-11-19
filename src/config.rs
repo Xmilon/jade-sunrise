@@ -46,7 +46,8 @@ pub const THEMES: &[&str] = &["dark", "classic", "flat"];
 pub const ICON_MODES: &[&str] = &["top", "centered", "inline", "hide"];
 pub const MOD_NAME_MODES: &[&str] = &["on", "smaller", "off"];
 pub const ID_MODES: &[&str] = &["off", "always", "details", "advanced_tooltips"];
-pub const BOSS_BAR_MODES: &[&str] = &["push_down", "no_operation", "hide_tooltip"];
+/// Jade's four modes. Hide Boss Bar is last so files written before it still read the same index.
+pub const BOSS_BAR_MODES: &[&str] = &["push_down", "no_operation", "hide_tooltip", "hide_boss_bar"];
 
 /// Every option, in the order the settings page and the file list them.
 pub const OPTS: &[Opt] = &[
