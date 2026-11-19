@@ -143,6 +143,14 @@ GUI scale 3).
 | Dropped item (new): `Diamond`, `Count: 5`, while the game's crosshair is on the grass | `27-dropped-item-520.png` |
 | Extended Reach for entities (new): a cow 9 blocks away, nothing at reach 0, `Cow` at reach 8 | `28-cow-far-reach0-520.png`, `28-cow-far-reach8-520.png` |
 | Boss Bar Overlap (new), one `/bossbar`: Push Down, No Operation, Hide Tooltip, Hide Boss Bar | `29-boss-push_down-520.png`, `29-boss-no_operation-520.png`, `29-boss-hide_tooltip-520.png`, `29-boss-hide_boss_bar-520.png` |
+| Parity port check (2026-11-19 evening): coloured coordinates + `[3.9]` distance, registry id under the name | `05-coords-registry-parity.png` |
+| Crop growth: wheat `57%`, beetroot `67%` | `06-crop-wheat-parity.png`, `06-crop-beetroot-parity.png` |
+| Harvest marks: stone with empty hand ✗ and with a pick ✓; dirt with a shovel no mark, empty hand ✗ | `07-stone-empty-cross-parity.png`, `07-stone-pick-check-parity.png`, `07-dirt-shovel-nomark-parity.png`, `07-dirt-empty-cross-parity.png` |
+| Health: cow 10 hearts, iron golem `92/100` | `08b-cow-hearts-parity.png`, `08-golem-health-parity.png` |
+| Horse stats; llama `Strength` only; camel nothing | `09-horse-stats-parity.png`, `09b-llama-parity.png`, `09c-camel-parity.png` |
+| Villager `Librarian - Novice` | `10-villager-parity.png` |
+| Note block `Harp F♯/G♭`; empty jukebox shows nothing | `11-noteblock-parity.png`, `12-jukebox-empty-parity.png` |
+| Furnace line (input, fuel, arrow, output); chest named rows; `Locked Hopper` | `13-furnace-parity.png`, `14-chest-parity.png`, `16-hopper-locked-parity.png` |
 
 **On the 2d81263 build** (2026-11-18):
 
