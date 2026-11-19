@@ -150,7 +150,7 @@ GUI scale 3).
 | Horse stats; llama `Strength` only; camel nothing | `09-horse-stats-parity.png`, `09b-llama-parity.png`, `09c-camel-parity.png` |
 | Villager `Librarian - Novice` | `10-villager-parity.png` |
 | Note block `Harp F♯/G♭`; empty jukebox shows nothing | `11-noteblock-parity.png`, `12-jukebox-empty-parity.png` |
-| Furnace line (input, fuel, arrow, output); chest named rows; `Locked Hopper` | `13-furnace-parity.png`, `14-chest-parity.png`, `16-hopper-locked-parity.png` |
+| Furnace line (input, fuel, arrow, output); chest named rows; `Locked Hopper`; the harvest ✗ beside the pickaxe while the hopper is locked | `13-furnace-parity.png`, `14-chest-parity.png`, `16-hopper-locked-parity.png`, `16-hopper-locked-cross-parity.png` |
 
 **On the 2d81263 build** (2026-11-18):
 
